@@ -3,6 +3,11 @@ const dados = [];
 let entradaSaida = "";
 let mensagemNormal = "";
 let mensagemPrivada = "";
+let mensagemCarregadas = "";
+let textoEnviar = "";
+
+
+login();
 
 function login() {
     const envio = axios.post('https://mock-api.driven.com.br/api/v4/uol/participants ', nome);
@@ -10,14 +15,14 @@ function login() {
     envio.catch(erro);
 }
 
+
+
 function enviado(resposta) {
-    if (resposta.data.status != 200) {
+    if (resposta.response.status != 200) {
         erro();
     } else {
-        buscarMensagens();
-        //roda o programa
-        // inserir aqui o buscarmensagens
-        setInterval(online, 5000);
+
+        buscarMensagens(setInterval(online, 5000));
     }
 }
 
@@ -33,50 +38,75 @@ function online() {
 
 function buscarMensagens() {
     const historico = axios.get("https://mock-api.driven.com.br/api/v4/uol/messages");
-    historico.then(historicoCarregado);
+    historico.then(esperarMensagens);
     historico.catch(historicoErro);
 }
 
-function historicoCarregado(mensagem) {
+function esperarMensagens(resposta) {
+    mensagemCarregadas = resposta.data;
+    historicoCarregado();
+}
+
+function historicoCarregado() {
     const elementoQueQueroQueApareca = document.querySelector('.mensagens');
     elementoQueQueroQueApareca.scrollIntoView();
 
-    if (mensagem.data.type === "status") {
-        const horario = mensagem.data.time;
-        const nome = mensagem.data.from;
-        const texto = mensagem.data.text;
+    for (let i = 0; i < mensagemCarregadas.length; i++) {
 
-        entradaSaida = `<div data-identifier="message" class="entradaSaida">\n<h1>${horario}</h1>\n<h2>${nome}</h2><h3>${texto}</h3>`;
-        document.querySelector(".mensagens").innerHTML = entradaSaida;
+        let de = mensagemCarregadas[i].from;
+        let para = mensagemCarregadas[i].to;
+        let texto = mensagemCarregadas[i].text;
+        let horario = mensagemCarregadas[i].time;
+        let tipo = mensagemCarregadas[i].type;
 
-    } else if (mensagem.data.type === "message") {
-        const horario = mensagem.data.time;
-        const de = mensagem.data.from;
-        const para = mensagem.data.to;
-        const texto = mensagem.data.text;
 
-        mensagemNormal = `<div data-identifier="message" class="mensagemNormal">\n<h1>${horario}</h1>\n<h2>${de}</h2><h4>${para}<h3>${texto}</h3>`;
-        document.querySelector(".mensagens").innerHTML = mensagemNormal;
+        if (tipo === "status") {
 
-    } else if (mensagem.data.type === "private_message") {
-        if (nome === mensagem.data.to) {
-            const horario = mensagem.data.time;
-            const de = mensagem.data.from;
-            const para = mensagem.data.to;
-            const texto = mensagem.data.text;
 
-            mensagemPrivada = `<div data-identifier="message" class="mensagemPrivada">\n<h1>${horario}</h1>\n<h2>${de}</h2><h4>${para}<h3>${texto}</h3>`;
-            document.querySelector(".mensagens").innerHTML = mensagemPrivada;
+            entradaSaida = `<div data-identifier="message" class="entradaSaida">\n<h1>${horario}</h1>\n<h2>${nome}</h2><h3>${texto}</h3>`;
+            document.querySelector(".mensagens").innerHTML = entradaSaida;
+
+        } else if (tipo === "message") {
+
+
+            mensagemNormal = `<div data-identifier="message" class="mensagemNormal">\n<h1>${horario}</h1>\n<h2>${de}</h2><h4>${para}<h3>${texto}</h3>`;
+            document.querySelector(".mensagens").innerHTML = mensagemNormal;
+
+        } else if (tipo === "private_message") {
+            if (nome === para) {
+
+                mensagemPrivada = `<div data-identifier="message" class="mensagemPrivada">\n<h1>${horario}</h1>\n<h2>${de}</h2><h4>${para}<h3>${texto}</h3>`;
+                document.querySelector(".mensagens").innerHTML = mensagemPrivada;
+            }
         }
     }
 
     function enviarMensagem() {
-        //pegar o nome e enviar como from, o conteudo da mensagem como text, o type como message e definir o to como todos
-        //usar o post para enviar para o servidor 
 
-        // - Caso o servidor responda com sucesso, você deve obter novamente as mensagens do servidor e atualizar o chat
-        // - Caso o servidor responda com erro, significa que esse usuário não está mais na sala e a página deve ser atualizada (e com isso voltando pra etapa de pedir o nome)
+        let botao = document.querySelector(".barraTexto");
 
-        // **Dica**: experimente usar `window.location.reload()`
+        textoEnviar = botao.value;
+
+        let msg = {
+            from: nome,
+            to: "Todos",
+            text: textoEnviar,
+            type: "message"
+
+        }
+        let promessa = "";
+        promessa = axios.post("https://mock-api.driven.com.br/api/v4/uol/messages", msg);
+        promessa.then(limparMsg);
+        promessa.catch(reload);
+
+    }
+
+    function reload() {
+        window.location.reload()
+    }
+
+    function limparMsg() {
+        let caixaDeTexto = document.querySelector(".barraTexto")
+        caixaDeTexto.value = "";
     }
 }
